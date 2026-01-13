@@ -1,0 +1,52 @@
+<resources>
+
+    <!-- App -->
+    <string name="app_name">Florist App</string>
+
+    <!-- Login -->
+    <string name="login">Login</string>
+    <string name="email">Email</string>
+    <string name="password">Password</string>
+    <string name="btn_login">Masuk</string>
+    <string name="login_failed">Email atau password salah</string>
+
+    <!-- Home -->
+    <string name="home_title">Daftar Bunga</string>
+    <string name="btn_add_bunga">Tambah Bunga</string>
+
+    <!-- Bunga Form -->
+    <string name="entry_bunga">Tambah Bunga</string>
+    <string name="edit_bunga">Edit Bunga</string>
+    <string name="nama_bunga">Nama Bunga</string>
+    <string name="kategori">Kategori</string>
+    <string name="harga">Harga</string>
+    <string name="stok">Stok</string>
+    <string name="foto_bunga">Foto Bunga</string>
+    <string name="btn_pilih_foto">Pilih Foto</string>
+    <string name="btn_simpan">Simpan</string>
+    <string name="btn_update">Update</string>
+
+    <!-- Detail -->
+    <string name="detail_bunga">Detail Bunga</string>
+    <string name="btn_delete">Hapus</string>
+
+    <!-- Stok -->
+    <string name="stok_title">Manajemen Stok</string>
+    <string name="stok_masuk">Stok Masuk</string>
+    <string name="stok_keluar">Stok Keluar</string>
+
+    <!-- Dialog -->
+    <string name="attention">Perhatian</string>
+    <string name="confirm_delete">Apakah Anda yakin ingin menghapus data ini?</string>
+    <string name="yes">Ya</string>
+    <string name="no">Tidak</string>
+
+    <!-- Status -->
+    <string name="loading">Memuat data...</string>
+    <string name="error">Terjadi kesalahan</string>
+    <string name="retry">Coba Lagi</string>
+
+    <!-- Validation -->
+    <string name="required_field">Semua field wajib diisi</string>
+
+</resources>
