@@ -1,7 +1,9 @@
 package com.example.tokobunga.uicontroller
 
+import android.app.Activity
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -10,14 +12,18 @@ import androidx.navigation.navArgument
 import com.example.tokobunga.uicontroller.route.*
 import com.example.tokobunga.view.auth.LoginScreen
 import com.example.tokobunga.view.bunga.*
-import com.example.tokobunga.view.stok.StokScreen
 import com.example.tokobunga.view.laporan.LaporanStokScreen
+import com.example.tokobunga.view.stok.StokScreen
 
 @Composable
 fun FloristNavHost(
     modifier: Modifier = Modifier
 ) {
     val navController = rememberNavController()
+
+    // ✅ AMBIL ACTIVITY DENGAN BENAR
+    val context = LocalContext.current
+    val activity = context as? Activity
 
     NavHost(
         navController = navController,
@@ -49,9 +55,8 @@ fun FloristNavHost(
                     navController.navigate(DestinasiLaporanStok.route)
                 },
                 onLogout = {
-                    navController.navigate(DestinasiLogin.route) {
-                        popUpTo(DestinasiHome.route) { inclusive = true }
-                    }
+                    // ✅ KELUAR APLIKASI (BUKAN KE LOGIN)
+                    activity?.finish()
                 }
             )
         }
@@ -72,11 +77,11 @@ fun FloristNavHost(
                 }
             )
         ) { backStackEntry ->
-            // 1. Ambil ID dari navigasi
-            val id = backStackEntry.arguments?.getInt(DestinasiDetailBunga.ID_BUNGA) ?: 0
+            val id = backStackEntry.arguments
+                ?.getInt(DestinasiDetailBunga.ID_BUNGA) ?: 0
 
             DetailBungaScreen(
-                idBunga = id, // <--- TAMBAHKAN INI (Ini yang menyebabkan error merah)
+                idBunga = id,
                 navigateBack = { navController.navigateUp() },
                 navigateToEdit = { idDariScreen ->
                     navController.navigate("${DestinasiEditBunga.route}/$idDariScreen")
@@ -86,7 +91,7 @@ fun FloristNavHost(
                 }
             )
         }
-        // ================= EDIT =================
+
         // ================= EDIT =================
         composable(
             route = DestinasiEditBunga.routeWithArg,
@@ -96,14 +101,15 @@ fun FloristNavHost(
                 }
             )
         ) { backStackEntry ->
-            // 1. Ambil ID dari navigasi
-            val id = backStackEntry.arguments?.getInt(DestinasiEditBunga.ID_BUNGA) ?: 0
+            val id = backStackEntry.arguments
+                ?.getInt(DestinasiEditBunga.ID_BUNGA) ?: 0
 
             EditBungaScreen(
-                idBunga = id, // <--- TAMBAHKAN INI agar error "No value passed" hilang
+                idBunga = id,
                 navigateBack = { navController.popBackStack() }
             )
         }
+
         // ================= STOK =================
         composable(
             route = DestinasiStok.routeWithArg,

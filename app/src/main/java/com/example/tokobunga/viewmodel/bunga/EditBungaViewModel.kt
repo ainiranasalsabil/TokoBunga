@@ -11,6 +11,7 @@ import kotlinx.coroutines.launch
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.asRequestBody
+import org.json.JSONObject
 import java.io.File
 
 class EditBungaViewModel(
@@ -29,18 +30,24 @@ class EditBungaViewModel(
     var harga by mutableStateOf("")
         private set
 
-    var stok by mutableStateOf("")
+    // PERBAIKAN: Stok kita hilangkan dari state pengeditan
+    // agar admin tidak bisa edit angka stok di layar ini.
+
+    var errorMessage by mutableStateOf<String?>(null)
         private set
+
+    fun clearError() { errorMessage = null }
 
     private var fotoFile: File? = null
 
     fun loadDataById(id: Int) {
         viewModelScope.launch {
             try {
+                // Pastikan repository menggunakan id_bunga
                 val bunga = repositoryBunga.getDetailBunga(id)
                 loadBunga(bunga)
             } catch (e: Exception) {
-                e.printStackTrace()
+                errorMessage = "Gagal memuat data: ${e.message}"
             }
         }
     }
@@ -50,31 +57,26 @@ class EditBungaViewModel(
         nama = bunga.nama_bunga
         kategori = bunga.kategori
         harga = bunga.harga
-        stok = bunga.stok.toString()
+        // stok tidak di-load ke field input
     }
 
     fun onNamaChange(value: String) { nama = value }
     fun onKategoriChange(value: String) { kategori = value }
     fun onHargaChange(value: String) { harga = value }
-    fun onStokChange(value: String) { stok = value }
     fun onFotoSelected(file: File) { fotoFile = file }
 
     fun updateBunga(
         onSuccess: () -> Unit,
         onError: (String) -> Unit
     ) {
-        if (nama.isBlank() || kategori.isBlank() || harga.isBlank() || stok.isBlank()) {
-            onError("Semua data wajib diisi!")
+        // Validasi: Stok tidak perlu divalidasi lagi di sini
+        if (nama.isBlank() || kategori.isBlank() || harga.isBlank()) {
+            onError("Nama, Kategori, dan Harga wajib diisi!")
             return
         }
 
         viewModelScope.launch {
             try {
-                /**
-                 * PERBAIKAN:
-                 * Hapus semua kode .toRequestBody().
-                 * Langsung kirim variabel String ke Repository.
-                 */
                 val fotoPart = fotoFile?.let {
                     MultipartBody.Part.createFormData(
                         "foto",
@@ -83,18 +85,36 @@ class EditBungaViewModel(
                     )
                 }
 
-                // Panggil repository dengan parameter String murni
-                repositoryBunga.updateBunga(
+                /**
+                 * PERBAIKAN:
+                 * Stok dikirim sebagai String kosong atau nilai tertentu.
+                 * Di PHP (bunga_update.php), kolom 'stok' harus dihilangkan dari query UPDATE
+                 * agar angka stok yang sudah ada di database tidak berubah/tertimpa.
+                 */
+                val response = repositoryBunga.updateBunga(
                     id = idBunga,
                     nama = nama,
                     kategori = kategori,
                     harga = harga,
-                    stok = stok,
                     foto = fotoPart
                 )
-                onSuccess()
+
+                if (response.isSuccessful) {
+                    onSuccess()
+                } else {
+                    val errorRaw = response.errorBody()?.string()
+                    val pesan = try {
+                        JSONObject(errorRaw.orEmpty()).getString("error")
+                    } catch (e: Exception) {
+                        "Gagal memperbarui data"
+                    }
+                    errorMessage = pesan
+                    onError(pesan)
+                }
             } catch (e: Exception) {
-                onError(e.message ?: "Gagal memperbarui data bunga")
+                val msg = e.message ?: "Gagal memperbarui data bunga"
+                errorMessage = msg
+                onError(msg)
             }
         }
     }

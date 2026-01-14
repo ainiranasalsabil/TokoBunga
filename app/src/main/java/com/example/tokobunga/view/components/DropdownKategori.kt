@@ -21,11 +21,10 @@ fun DropdownKategori(
     onSelected: (String) -> Unit
 ) {
     val listKategori = listOf(
-        "Mawar",
-        "Melati",
-        "Anggrek",
-        "Tulip"
+        "Fresh Flower",
+        "Artificial Flower"
     )
+
 
     var expanded by remember { mutableStateOf(false) }
 

@@ -6,9 +6,8 @@ import kotlinx.serialization.Serializable
 data class LogStok(
     val id_log: Int,
     val id_bunga: Int,
-    val nama_bunga: String,   // ⬅️ TAMBAHKAN INI
-    val jenis: String,        // masuk / keluar
+    val nama_bunga: String,
     val jumlah: Int,
+    val tipe: String, // Sesuaikan dengan database
     val tanggal: String
 )
-

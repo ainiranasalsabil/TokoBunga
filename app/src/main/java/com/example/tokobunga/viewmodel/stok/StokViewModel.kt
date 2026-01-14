@@ -8,8 +8,9 @@ import androidx.lifecycle.viewModelScope
 import com.example.tokobunga.modeldata.LogStok
 import com.example.tokobunga.repositori.RepositoryStok
 import kotlinx.coroutines.launch
-import retrofit2.HttpException
+import org.json.JSONObject
 import java.io.IOException
+import java.util.Calendar // Penting untuk mendapatkan tahun otomatis
 
 sealed interface StatusStokUi {
     object Idle : StatusStokUi
@@ -25,7 +26,6 @@ class StokViewModel(
     var jumlah by mutableStateOf("")
         private set
 
-    // PERBAIKAN: Gunakan label yang sama dengan pilihan di PHP ("Masuk" / "Keluar")
     var jenis by mutableStateOf("Masuk")
         private set
 
@@ -42,13 +42,27 @@ class StokViewModel(
     }
 
     fun onJenisChange(value: String) {
-        jenis = value
+        jenis = value.lowercase().replaceFirstChar {
+            if (it.isLowerCase()) it.titlecase() else it.toString()
+        }
     }
 
+    /**
+     * PERBAIKAN: Menambahkan parameter Tahun untuk sinkronisasi Repository.
+     * Mengirim bulan = 0 dan tahun saat ini agar menampilkan semua riwayat tahun ini.
+     */
     fun loadLogStok(idBunga: Int) {
         viewModelScope.launch {
             try {
-                logStok = repositoryStok.getLogStok(idBunga)
+                // Ambil tahun saat ini secara dinamis
+                val tahunSekarang = Calendar.getInstance().get(Calendar.YEAR)
+
+                // PERBAIKAN UTAMA: Sekarang mengirimkan 3 argumen (id, bulan, tahun)
+                logStok = repositoryStok.getLogStok(
+                    idBunga = idBunga,
+                    bulan = 0,
+                    tahun = tahunSekarang
+                )
             } catch (e: Exception) {
                 logStok = emptyList()
             }
@@ -65,23 +79,24 @@ class StokViewModel(
 
         viewModelScope.launch {
             try {
-                /**
-                 * PERBAIKAN UTAMA:
-                 * Konversi idBunga dan jumlah menjadi Int sesuai kontrak Repository baru.
-                 * Pastikan parameter 'tipe' sesuai dengan yang diharapkan PHP.
-                 */
                 val response = repositoryStok.updateStok(
-                    idBunga = idBunga,           // Sudah Int
-                    tipe = jenis,                // Kirim "Masuk" atau "Keluar"
-                    jumlah = jumlah.toInt()      // Konversi String ke Int
+                    idBunga = idBunga,
+                    tipe = jenis,
+                    jumlah = jumlah.toInt()
                 )
 
                 if (response.isSuccessful) {
                     statusUi = StatusStokUi.Success
-                    jumlah = "" // Reset input
-                    loadLogStok(idBunga) // Refresh riwayat
+                    jumlah = ""
+                    loadLogStok(idBunga) // Refresh log setelah update
                 } else {
-                    statusUi = StatusStokUi.Error("Gagal: Stok mungkin tidak cukup")
+                    val errorJson = response.errorBody()?.string()
+                    val message = try {
+                        JSONObject(errorJson.orEmpty()).getString("error")
+                    } catch (e: Exception) {
+                        "Gagal memperbarui stok"
+                    }
+                    statusUi = StatusStokUi.Error(message)
                 }
 
             } catch (e: IOException) {

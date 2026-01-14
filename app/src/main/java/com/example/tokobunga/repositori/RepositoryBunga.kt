@@ -6,11 +6,12 @@ import okhttp3.MultipartBody
 import retrofit2.Response
 
 interface RepositoryBunga {
-
     suspend fun getListBunga(): List<Bunga>
+
+    // PERBAIKAN: Nama parameter tetap 'id' di level Repo tidak apa-apa,
+    // tapi pastikan dilempar ke id_bunga di ServiceApi
     suspend fun getDetailBunga(id: Int): Bunga
 
-    // PERBAIKAN: Gunakan String untuk field teks
     suspend fun tambahBunga(
         nama: String,
         kategori: String,
@@ -19,15 +20,14 @@ interface RepositoryBunga {
         foto: MultipartBody.Part
     ): Response<Void>
 
-    // PERBAIKAN: Gunakan String untuk field teks
     suspend fun updateBunga(
         id: Int,
         nama: String,
         kategori: String,
         harga: String,
-        stok: String,
         foto: MultipartBody.Part?
     ): Response<Void>
+
 
     suspend fun deleteBunga(id: Int): Response<Void>
 }
@@ -39,10 +39,10 @@ class JaringanRepositoryBunga(
     override suspend fun getListBunga(): List<Bunga> =
         serviceApiBunga.getListBunga()
 
+    // SINKRONISASI: Mengarahkan id ke parameter id_bunga di ServiceApi
     override suspend fun getDetailBunga(id: Int): Bunga =
-        serviceApiBunga.getDetailBunga(id)
+        serviceApiBunga.getDetailBunga(idBunga = id)
 
-    // Sesuai dengan interface di atas, gunakan String
     override suspend fun tambahBunga(
         nama: String,
         kategori: String,
@@ -52,17 +52,23 @@ class JaringanRepositoryBunga(
     ): Response<Void> =
         serviceApiBunga.tambahBunga(nama, kategori, harga, stok, foto)
 
-    // Sesuai dengan interface di atas, gunakan String
+    // SINKRONISASI: Mengarahkan id ke id_bunga dan menghapus parameter stok yang tidak perlu
     override suspend fun updateBunga(
         id: Int,
         nama: String,
         kategori: String,
         harga: String,
-        stok: String,
         foto: MultipartBody.Part?
     ): Response<Void> =
-        serviceApiBunga.updateBunga(id, nama, kategori, harga, stok, foto)
+        serviceApiBunga.updateBunga(
+            idBunga = id,
+            nama = nama,
+            kategori = kategori,
+            harga = harga,
+            foto = foto
+        )
 
+    // SINKRONISASI: Memastikan ID dikirim ke id_bunga
     override suspend fun deleteBunga(id: Int): Response<Void> =
-        serviceApiBunga.deleteBunga(id)
+        serviceApiBunga.deleteBunga(idBunga = id)
 }

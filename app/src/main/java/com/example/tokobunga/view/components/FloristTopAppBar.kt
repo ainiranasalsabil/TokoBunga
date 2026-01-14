@@ -1,17 +1,19 @@
 package com.example.tokobunga.view.components
 
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material.icons.filled.Assessment
-import androidx.compose.material3.CenterAlignedTopAppBar
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBarScrollBehavior
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -23,7 +25,7 @@ fun FloristTopAppBar(
     canNavigateBack: Boolean = false,
     onNavigateBack: () -> Unit = {},
 
-    // aksi di kanan
+    // aksi
     showLogout: Boolean = false,
     onLogoutClick: () -> Unit = {},
 
@@ -33,11 +35,17 @@ fun FloristTopAppBar(
     scrollBehavior: TopAppBarScrollBehavior? = null
 ) {
     CenterAlignedTopAppBar(
-        title = { Text(text = title) },
+        title = {
+            Text(
+                text = title,
+                fontSize = 21.sp,
+                fontWeight = FontWeight.Bold
+            )
+        },
         modifier = modifier,
         scrollBehavior = scrollBehavior,
 
-        // ================= LEFT ICON =================
+        // ================= LEFT =================
         navigationIcon = {
             if (canNavigateBack) {
                 IconButton(onClick = onNavigateBack) {
@@ -49,9 +57,10 @@ fun FloristTopAppBar(
             }
         },
 
-        // ================= RIGHT ICONS =================
+        // ================= RIGHT =================
         actions = {
 
+            // LAPORAN (ICON)
             if (showLaporan) {
                 IconButton(onClick = onLaporanClick) {
                     Icon(
@@ -61,13 +70,26 @@ fun FloristTopAppBar(
                 }
             }
 
+            // LOGOUT (BUTTON)
             if (showLogout) {
-                IconButton(onClick = onLogoutClick) {
-                    Icon(
-                        imageVector = Icons.Default.ExitToApp,
-                        contentDescription = "Logout"
+                AssistChip(
+                    onClick = onLogoutClick,
+                    label = {
+                        Text(
+                            text = "Keluar",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Medium,
+                            modifier = Modifier.padding(horizontal = 8.dp)
+                        )
+                    },
+                    shape = RoundedCornerShape(50),
+                    colors = AssistChipDefaults.assistChipColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        labelColor = MaterialTheme.colorScheme.onPrimary
                     )
-                }
+                )
+
+                Spacer(modifier = Modifier.width(8.dp))
             }
         }
     )

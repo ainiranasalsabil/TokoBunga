@@ -22,47 +22,49 @@ class EntryBungaViewModel(
         private set
     var harga by mutableStateOf("")
         private set
-    var stok by mutableStateOf("")
-        private set
+
+    // State stok dihapus karena akan otomatis diset "0" saat submit
 
     fun onNamaChange(value: String) { nama = value }
     fun onKategoriChange(value: String) { kategori = value }
     fun onHargaChange(value: String) { harga = value }
-    fun onStokChange(value: String) { stok = value }
 
     fun submitBunga(
         fileFoto: File,
         onSuccess: () -> Unit,
         onError: (String) -> Unit
     ) {
+        if (nama.isBlank() || kategori.isBlank() || harga.isBlank()) {
+            onError("Nama, Kategori, dan Harga wajib diisi!")
+            return
+        }
+
         viewModelScope.launch {
             try {
-                /**
-                 * PERBAIKAN:
-                 * Tidak perlu lagi membuat namaRB, kategoriRB, dll.
-                 * Kita langsung membuat Part untuk FOTO saja.
-                 */
+                // GUNAKAN toMediaType() karena sudah di-import di atas
+                val requestFile = fileFoto.asRequestBody("image/jpeg".toMediaType())
+
                 val fotoPart = MultipartBody.Part.createFormData(
                     "foto",
                     fileFoto.name,
-                    fileFoto.asRequestBody("image/*".toMediaType())
+                    requestFile
                 )
 
-                /**
-                 * Panggil repository dengan String murni.
-                 * Stok dikirim sebagai String "10", nanti PHP yang melakukan intval().
-                 */
-                repositoryBunga.tambahBunga(
+                val response = repositoryBunga.tambahBunga(
                     nama = nama,
                     kategori = kategori,
                     harga = harga,
-                    stok = stok,
+                    stok = "0",
                     foto = fotoPart
                 )
 
-                onSuccess()
+                if (response.isSuccessful) {
+                    onSuccess()
+                } else {
+                    onError("Gagal simpan: Server merespon ${response.code()}")
+                }
             } catch (e: Exception) {
-                onError(e.message ?: "Gagal simpan data")
+                onError("Koneksi Error: ${e.localizedMessage}")
             }
         }
     }

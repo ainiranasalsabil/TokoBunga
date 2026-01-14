@@ -5,12 +5,15 @@ import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
@@ -39,11 +42,10 @@ fun EntryBungaScreen(
     val context = LocalContext.current
     val scrollState = rememberScrollState()
 
-    // 1. State untuk menampung Uri dan File Foto
     var imageUri by remember { mutableStateOf<Uri?>(null) }
     var fotoFile by remember { mutableStateOf<File?>(null) }
+    var isLoading by remember { mutableStateOf(false) }
 
-    // 2. Launcher untuk mengambil gambar dari galeri
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
@@ -64,90 +66,155 @@ fun EntryBungaScreen(
             )
         }
     ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .padding(innerPadding)
-                .padding(dimensionResource(R.dimen.padding_medium))
-                .verticalScroll(scrollState),
-            verticalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.padding_small))
-        ) {
-            // Input Nama
-            OutlinedTextField(
-                value = viewModel.nama,
-                onValueChange = viewModel::onNamaChange,
-                label = { Text(stringResource(R.string.nama_bunga)) },
-                modifier = Modifier.fillMaxWidth()
-            )
 
-            // Input Kategori
-            DropdownKategori(
-                selected = viewModel.kategori,
-                onSelected = viewModel::onKategoriChange
-            )
+        Box(modifier = Modifier.fillMaxSize()) {
 
-            // Input Harga
-            OutlinedTextField(
-                value = viewModel.harga,
-                onValueChange = viewModel::onHargaChange,
-                label = { Text(stringResource(R.string.harga)) },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            // Input Stok
-            OutlinedTextField(
-                value = viewModel.stok,
-                onValueChange = viewModel::onStokChange,
-                label = { Text(stringResource(R.string.stok)) },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // 3. Tombol Pilih Foto
-            Button(
-                onClick = { launcher.launch("image/*") },
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
+            Column(
+                modifier = Modifier
+                    .padding(innerPadding)
+                    .padding(dimensionResource(R.dimen.padding_medium))
+                    .verticalScroll(scrollState),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Text(if (imageUri == null) "Pilih Foto Bunga" else "Foto Berhasil Dipilih")
-            }
 
-            // Menampilkan nama file jika sudah dipilih
-            imageUri?.let {
-                Text(text = "File: ${fotoFile?.name}", style = MaterialTheme.typography.bodySmall)
-            }
+                // ================= DATA BUNGA =================
+                Card(
+                    shape = RoundedCornerShape(16.dp),
+                    elevation = CardDefaults.cardElevation(2.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
 
-            Spacer(modifier = Modifier.height(16.dp))
+                        OutlinedTextField(
+                            value = viewModel.nama,
+                            onValueChange = viewModel::onNamaChange,
+                            label = { Text(stringResource(R.string.nama_bunga)) },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp)
+                        )
 
-            // 4. Tombol Simpan
-            Button(
-                onClick = {
-                    if (fotoFile != null) {
+                        DropdownKategori(
+                            selected = viewModel.kategori,
+                            onSelected = viewModel::onKategoriChange
+                        )
+
+                        OutlinedTextField(
+                            value = viewModel.harga,
+                            onValueChange = viewModel::onHargaChange,
+                            label = { Text(stringResource(R.string.harga)) },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            prefix = { Text("Rp ") },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                    }
+                }
+
+                // ================= FOTO =================
+                Card(
+                    shape = RoundedCornerShape(16.dp),
+                    elevation = CardDefaults.cardElevation(2.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+
+                        Text(
+                            text = "Foto Bunga",
+                            style = MaterialTheme.typography.titleSmall
+                        )
+
+                        Button(
+                            onClick = { launcher.launch("image/*") },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.secondary
+                            )
+                        ) {
+                            Text(
+                                if (imageUri == null)
+                                    "Pilih Foto Bunga"
+                                else
+                                    "Foto Berhasil Dipilih"
+                            )
+                        }
+
+                        imageUri?.let {
+                            Text(
+                                text = "File: ${fotoFile?.name}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // ================= SIMPAN =================
+                Button(
+                    onClick = {
+                        if (fotoFile == null) {
+                            Toast.makeText(
+                                context,
+                                "Harap pilih foto terlebih dahulu!",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                            return@Button
+                        }
+
+                        isLoading = true
                         viewModel.submitBunga(
                             fileFoto = fotoFile!!,
                             onSuccess = {
-                                Toast.makeText(context, "Berhasil simpan data", Toast.LENGTH_SHORT).show()
+                                isLoading = false
+                                Toast.makeText(
+                                    context,
+                                    "Bunga berhasil ditambahkan",
+                                    Toast.LENGTH_SHORT
+                                ).show()
                                 navigateBack()
                             },
                             onError = { error ->
-                                Toast.makeText(context, "Error: $error", Toast.LENGTH_LONG).show()
+                                isLoading = false
+                                Toast.makeText(context, error, Toast.LENGTH_LONG).show()
                             }
                         )
-                    } else {
-                        Toast.makeText(context, "Harap pilih foto terlebih dahulu!", Toast.LENGTH_SHORT).show()
-                    }
-                },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(stringResource(R.string.btn_simpan))
+                    },
+                    modifier = Modifier
+                        .align(Alignment.CenterHorizontally)
+                        .width(160.dp)
+                        .height(46.dp),
+                    shape = RoundedCornerShape(50),
+                    enabled = !isLoading
+                ) {
+                    Text(stringResource(R.string.btn_simpan))
+                }
+            }
+
+            // ================= LOADING =================
+            if (isLoading) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.background.copy(alpha = 0.5f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
+                }
             }
         }
     }
 }
 
-// 5. Fungsi Helper untuk mengubah URI menjadi FILE agar bisa dikirim ke PHP
+// ================= UTIL =================
+
 fun uriToFile(uri: Uri, context: Context): File {
     val contentResolver = context.contentResolver
     val myFile = File.createTempFile("temp_image", ".jpg", context.cacheDir)

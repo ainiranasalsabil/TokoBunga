@@ -12,14 +12,9 @@ interface ServiceApiBunga {
 
     @GET("bunga_detail.php")
     suspend fun getDetailBunga(
-        @Query("id") idBunga: Int
+        @Query("id_bunga") idBunga: Int
     ): Bunga
 
-    /**
-     * PERBAIKAN FINAL: Menggunakan String agar sinkron dengan Repository.
-     * RequestBody dihapus karena menyebabkan mismatch tipe data di Android
-     * dan masalah tanda kutip ganda di database.
-     */
     @Multipart
     @POST("bunga_add.php")
     suspend fun tambahBunga(
@@ -30,25 +25,19 @@ interface ServiceApiBunga {
         @Part foto: MultipartBody.Part
     ): Response<Void>
 
-    /**
-     * PERBAIKAN FINAL:
-     * - @Query("id") idBunga untuk menangkap $_GET['id'] di PHP.
-     * - Tipe data String untuk field teks.
-     * - MultipartBody.Part? (nullable) agar foto tidak wajib saat update.
-     */
     @Multipart
     @POST("bunga_update.php")
     suspend fun updateBunga(
-        @Query("id") idBunga: Int,
+        @Query("id_bunga") idBunga: Int,
         @Part("nama_bunga") nama: String,
         @Part("kategori") kategori: String,
         @Part("harga") harga: String,
-        @Part("stok") stok: String,
         @Part foto: MultipartBody.Part?
     ): Response<Void>
 
+    // 🔥 INI YANG DIPERBAIKI
     @DELETE("bunga_delete.php")
     suspend fun deleteBunga(
-        @Query("id") idBunga: Int
+        @Query("id_bunga") idBunga: Int
     ): Response<Void>
 }
