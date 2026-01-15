@@ -8,6 +8,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -17,6 +19,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.tokobunga.R
@@ -32,6 +35,9 @@ fun LoginScreen(
 ) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+
+    // 👁️ STATE UNTUK SHOW / HIDE PASSWORD
+    var passwordVisible by remember { mutableStateOf(false) }
 
     Surface(
         modifier = modifier.fillMaxSize(),
@@ -86,46 +92,42 @@ fun LoginScreen(
                 onValueChange = { email = it },
                 label = { Text(stringResource(id = R.string.email)) },
                 leadingIcon = {
-                    Icon(
-                        Icons.Default.Email,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary
-                    )
+                    Icon(Icons.Default.Email, contentDescription = null)
                 },
                 singleLine = true,
                 shape = RoundedCornerShape(50),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = MaterialTheme.colorScheme.primary,
-                    unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-                    focusedLabelColor = MaterialTheme.colorScheme.primary,
-                    cursorColor = MaterialTheme.colorScheme.primary
-                ),
                 modifier = Modifier.fillMaxWidth()
             )
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // ================= PASSWORD =================
+            // ================= PASSWORD (DENGAN MATA) =================
             OutlinedTextField(
                 value = password,
                 onValueChange = { password = it },
                 label = { Text(stringResource(id = R.string.password)) },
                 leadingIcon = {
-                    Icon(
-                        Icons.Default.Lock,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary
-                    )
+                    Icon(Icons.Default.Lock, contentDescription = null)
                 },
+                trailingIcon = {
+                    IconButton(onClick = {
+                        passwordVisible = !passwordVisible
+                    }) {
+                        Icon(
+                            imageVector = if (passwordVisible)
+                                Icons.Default.Visibility
+                            else
+                                Icons.Default.VisibilityOff,
+                            contentDescription = null
+                        )
+                    }
+                },
+                visualTransformation = if (passwordVisible)
+                    VisualTransformation.None
+                else
+                    PasswordVisualTransformation(),
                 singleLine = true,
-                visualTransformation = PasswordVisualTransformation(),
                 shape = RoundedCornerShape(50),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = MaterialTheme.colorScheme.primary,
-                    unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-                    focusedLabelColor = MaterialTheme.colorScheme.primary,
-                    cursorColor = MaterialTheme.colorScheme.primary
-                ),
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -135,21 +137,11 @@ fun LoginScreen(
             Button(
                 onClick = { viewModel.login(email, password) },
                 shape = RoundedCornerShape(50),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary
-                ),
-                elevation = ButtonDefaults.buttonElevation(
-                    defaultElevation = 4.dp
-                ),
                 modifier = Modifier
                     .width(190.dp)
                     .height(52.dp)
             ) {
-                Text(
-                    text = stringResource(id = R.string.btn_login),
-                    style = MaterialTheme.typography.titleMedium
-                )
+                Text(stringResource(id = R.string.btn_login))
             }
 
             Spacer(modifier = Modifier.height(18.dp))
@@ -157,9 +149,7 @@ fun LoginScreen(
             // ================= STATUS LOGIN =================
             when (val status = viewModel.statusLogin) {
                 is StatusLogin.Loading -> {
-                    CircularProgressIndicator(
-                        color = MaterialTheme.colorScheme.primary
-                    )
+                    CircularProgressIndicator()
                 }
 
                 is StatusLogin.Success -> {
@@ -181,6 +171,3 @@ fun LoginScreen(
         }
     }
 }
-
-
-

@@ -7,7 +7,7 @@
     <string name="login">Login</string>
     <string name="email">Email</string>
     <string name="password">Password</string>
-    <string name="btn_login">Masuk</string>
+    <string name="btn_login">Login</string>
     <string name="login_failed">Email atau password salah</string>
 
     <!-- Home -->

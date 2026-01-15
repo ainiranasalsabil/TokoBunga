@@ -2,7 +2,6 @@ package com.example.tokobunga.view.bunga
 
 import android.content.Context
 import android.net.Uri
-import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -46,13 +45,17 @@ fun EntryBungaScreen(
     var fotoFile by remember { mutableStateOf<File?>(null) }
     var isLoading by remember { mutableStateOf(false) }
 
+    // ====== STATE DIALOG ======
+    var showDialog by remember { mutableStateOf(false) }
+    var dialogTitle by remember { mutableStateOf("") }
+    var dialogMessage by remember { mutableStateOf("") }
+    var isSuccess by remember { mutableStateOf(false) }
+
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
-    ) { uri: Uri? ->
+    ) { uri ->
         imageUri = uri
-        uri?.let {
-            fotoFile = uriToFile(it, context)
-        }
+        uri?.let { fotoFile = uriToFile(it, context) }
     }
 
     Scaffold(
@@ -132,10 +135,7 @@ fun EntryBungaScreen(
                         Button(
                             onClick = { launcher.launch("image/*") },
                             modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.secondary
-                            )
+                            shape = RoundedCornerShape(12.dp)
                         ) {
                             Text(
                                 if (imageUri == null)
@@ -161,29 +161,30 @@ fun EntryBungaScreen(
                 Button(
                     onClick = {
                         if (fotoFile == null) {
-                            Toast.makeText(
-                                context,
-                                "Harap pilih foto terlebih dahulu!",
-                                Toast.LENGTH_SHORT
-                            ).show()
+                            dialogTitle = "Peringatan"
+                            dialogMessage = "Silakan pilih foto bunga terlebih dahulu."
+                            isSuccess = false
+                            showDialog = true
                             return@Button
                         }
 
                         isLoading = true
+
                         viewModel.submitBunga(
                             fileFoto = fotoFile!!,
                             onSuccess = {
                                 isLoading = false
-                                Toast.makeText(
-                                    context,
-                                    "Bunga berhasil ditambahkan",
-                                    Toast.LENGTH_SHORT
-                                ).show()
-                                navigateBack()
+                                dialogTitle = "Berhasil"
+                                dialogMessage = "Bunga berhasil ditambahkan."
+                                isSuccess = true
+                                showDialog = true
                             },
                             onError = { error ->
                                 isLoading = false
-                                Toast.makeText(context, error, Toast.LENGTH_LONG).show()
+                                dialogTitle = "Gagal"
+                                dialogMessage = error
+                                isSuccess = false
+                                showDialog = true
                             }
                         )
                     },
@@ -209,6 +210,25 @@ fun EntryBungaScreen(
                     CircularProgressIndicator()
                 }
             }
+
+            // ================= DIALOG =================
+            if (showDialog) {
+                AlertDialog(
+                    onDismissRequest = { showDialog = false },
+                    title = { Text(dialogTitle) },
+                    text = { Text(dialogMessage) },
+                    confirmButton = {
+                        TextButton(
+                            onClick = {
+                                showDialog = false
+                                if (isSuccess) navigateBack()
+                            }
+                        ) {
+                            Text("OK")
+                        }
+                    }
+                )
+            }
         }
     }
 }
@@ -217,15 +237,17 @@ fun EntryBungaScreen(
 
 fun uriToFile(uri: Uri, context: Context): File {
     val contentResolver = context.contentResolver
-    val myFile = File.createTempFile("temp_image", ".jpg", context.cacheDir)
+    val file = File.createTempFile("temp_image", ".jpg", context.cacheDir)
     val inputStream: InputStream? = contentResolver.openInputStream(uri)
-    val outputStream = FileOutputStream(myFile)
+    val outputStream = FileOutputStream(file)
+
     val buffer = ByteArray(1024)
     var length: Int
     while (inputStream?.read(buffer).also { length = it ?: -1 } != -1) {
         outputStream.write(buffer, 0, length)
     }
+
     outputStream.close()
     inputStream?.close()
-    return myFile
+    return file
 }

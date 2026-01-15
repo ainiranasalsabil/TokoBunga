@@ -1,6 +1,9 @@
 package com.example.tokobunga.view.bunga
 
-import android.widget.Toast
+import android.content.Context
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -8,6 +11,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -25,6 +29,8 @@ import com.example.tokobunga.view.components.DropdownKategori
 import com.example.tokobunga.view.components.FloristTopAppBar
 import com.example.tokobunga.viewmodel.bunga.EditBungaViewModel
 import com.example.tokobunga.viewmodel.provide.PenyediaViewModel
+import java.io.File
+import java.io.FileOutputStream
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -36,32 +42,26 @@ fun EditBungaScreen(
 ) {
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
     val context = LocalContext.current
+
     var isLoading by remember { mutableStateOf(false) }
 
-    val errorMessage = viewModel.errorMessage
+    // ===== DIALOG STATE =====
+    var showDialog by remember { mutableStateOf(false) }
+    var dialogTitle by remember { mutableStateOf("") }
+    var dialogMessage by remember { mutableStateOf("") }
+    var isSuccess by remember { mutableStateOf(false) }
 
-    // ================= DIALOG ERROR (dari ViewModel) =================
-    if (errorMessage != null) {
-        AlertDialog(
-            onDismissRequest = { viewModel.clearError() },
-            title = {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        Icons.Default.Warning,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.error
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    Text("Gagal Memperbarui")
-                }
-            },
-            text = { Text(errorMessage) },
-            confirmButton = {
-                TextButton(onClick = { viewModel.clearError() }) {
-                    Text("Mengerti")
-                }
-            }
-        )
+    // ===== FOTO BARU =====
+    var imageUri by remember { mutableStateOf<Uri?>(null) }
+
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        uri?.let {
+            imageUri = it
+            val file = uriToFileEdit(it, context)
+            viewModel.onFotoSelected(file)
+        }
     }
 
     // ================= LOAD DATA =================
@@ -106,8 +106,9 @@ fun EditBungaScreen(
                             value = viewModel.nama,
                             onValueChange = viewModel::onNamaChange,
                             label = { Text(stringResource(R.string.nama_bunga)) },
-                            modifier = Modifier.fillMaxWidth(),
+                            enabled = !viewModel.isLocked,
                             singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(12.dp)
                         )
 
@@ -128,7 +129,37 @@ fun EditBungaScreen(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(8.dp))
+                // ================= FOTO (OPSIONAL) =================
+                Card(
+                    shape = RoundedCornerShape(16.dp),
+                    elevation = CardDefaults.cardElevation(2.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+
+                        Text(
+                            text = "Ganti Foto Bunga (Opsional)",
+                            style = MaterialTheme.typography.titleSmall
+                        )
+
+                        OutlinedButton(
+                            onClick = { launcher.launch("image/*") },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(Icons.Default.Image, contentDescription = null)
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                if (imageUri == null)
+                                    "Pilih Foto Baru"
+                                else
+                                    "Foto Baru Dipilih"
+                            )
+                        }
+                    }
+                }
 
                 // ================= UPDATE =================
                 Button(
@@ -137,23 +168,36 @@ fun EditBungaScreen(
                         viewModel.updateBunga(
                             onSuccess = {
                                 isLoading = false
-                                Toast.makeText(
-                                    context,
-                                    "Data bunga berhasil diperbarui",
-                                    Toast.LENGTH_SHORT
-                                ).show()
-                                navigateBack()
+                                dialogTitle = "Berhasil"
+                                dialogMessage = "Data bunga berhasil diperbarui."
+                                isSuccess = true
+                                showDialog = true
                             },
                             onError = { pesan ->
                                 isLoading = false
-                                Toast.makeText(context, pesan, Toast.LENGTH_LONG).show()
+                                isSuccess = false
+
+                                if (
+                                    pesan.contains("stok", true) ||
+                                    pesan.contains("riwayat", true)
+                                ) {
+                                    dialogTitle = "Tidak Dapat Diperbarui"
+                                    dialogMessage =
+                                        "Data bunga ini tidak dapat diperbarui karena sudah memiliki riwayat stok.\n\n" +
+                                                "Perubahan hanya diperbolehkan sebelum ada transaksi stok."
+                                } else {
+                                    dialogTitle = "Gagal Memperbarui"
+                                    dialogMessage = pesan
+                                }
+
+                                showDialog = true
                             }
                         )
                     },
                     modifier = Modifier
                         .align(Alignment.CenterHorizontally)
-                        .width(160.dp)
-                        .height(46.dp),
+                        .width(170.dp)
+                        .height(48.dp),
                     shape = RoundedCornerShape(50),
                     enabled = !isLoading
                 ) {
@@ -166,12 +210,55 @@ fun EditBungaScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(MaterialTheme.colorScheme.background.copy(alpha = 0.5f)),
+                        .background(
+                            MaterialTheme.colorScheme.background.copy(alpha = 0.5f)
+                        ),
                     contentAlignment = Alignment.Center
                 ) {
                     CircularProgressIndicator()
                 }
             }
+
+            // ================= DIALOG =================
+            if (showDialog) {
+                AlertDialog(
+                    onDismissRequest = { showDialog = false },
+                    icon = {
+                        if (!isSuccess) {
+                            Icon(
+                                Icons.Default.Warning,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.error
+                            )
+                        }
+                    },
+                    title = { Text(dialogTitle) },
+                    text = { Text(dialogMessage) },
+                    confirmButton = {
+                        TextButton(
+                            onClick = {
+                                showDialog = false
+                                if (isSuccess) navigateBack()
+                            }
+                        ) {
+                            Text("Mengerti")
+                        }
+                    }
+                )
+            }
         }
     }
+}
+
+/**
+ * ================= UTIL KHUSUS EDIT (ANTI CONFLICT)
+ */
+fun uriToFileEdit(uri: Uri, context: Context): File {
+    val inputStream = context.contentResolver.openInputStream(uri)!!
+    val file = File.createTempFile("edit_foto_", ".jpg", context.cacheDir)
+    val outputStream = FileOutputStream(file)
+    inputStream.copyTo(outputStream)
+    inputStream.close()
+    outputStream.close()
+    return file
 }

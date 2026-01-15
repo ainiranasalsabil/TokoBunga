@@ -55,8 +55,11 @@ fun FloristNavHost(
                     navController.navigate(DestinasiLaporanStok.route)
                 },
                 onLogout = {
-                    // ✅ KELUAR APLIKASI (BUKAN KE LOGIN)
-                    activity?.finish()
+                    navController.navigate(DestinasiLogin.route) {
+                        popUpTo(DestinasiHome.route) {
+                            inclusive = true
+                        }
+                    }
                 }
             )
         }

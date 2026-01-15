@@ -30,24 +30,27 @@ class EditBungaViewModel(
     var harga by mutableStateOf("")
         private set
 
-    // PERBAIKAN: Stok kita hilangkan dari state pengeditan
-    // agar admin tidak bisa edit angka stok di layar ini.
+    /** 🔒 data terkunci jika sudah ada log stok */
+    var isLocked by mutableStateOf(false)
+        private set
 
     var errorMessage by mutableStateOf<String?>(null)
         private set
 
-    fun clearError() { errorMessage = null }
-
     private var fotoFile: File? = null
 
+    fun clearError() {
+        errorMessage = null
+    }
+
+    // ================= LOAD DATA =================
     fun loadDataById(id: Int) {
         viewModelScope.launch {
             try {
-                // Pastikan repository menggunakan id_bunga
                 val bunga = repositoryBunga.getDetailBunga(id)
                 loadBunga(bunga)
             } catch (e: Exception) {
-                errorMessage = "Gagal memuat data: ${e.message}"
+                errorMessage = "Gagal memuat data bunga"
             }
         }
     }
@@ -57,21 +60,40 @@ class EditBungaViewModel(
         nama = bunga.nama_bunga
         kategori = bunga.kategori
         harga = bunga.harga
-        // stok tidak di-load ke field input
+
+        /**
+         * NOTE:
+         * kalau backend detail bunga sudah kirim can_edit,
+         * tinggal aktifkan ini:
+         *
+         * isLocked = !bunga.can_edit
+         */
     }
 
-    fun onNamaChange(value: String) { nama = value }
-    fun onKategoriChange(value: String) { kategori = value }
-    fun onHargaChange(value: String) { harga = value }
-    fun onFotoSelected(file: File) { fotoFile = file }
+    // ================= INPUT =================
+    fun onNamaChange(value: String) {
+        if (!isLocked) nama = value
+    }
 
+    fun onKategoriChange(value: String) {
+        if (!isLocked) kategori = value
+    }
+
+    fun onHargaChange(value: String) {
+        if (!isLocked) harga = value
+    }
+
+    fun onFotoSelected(file: File) {
+        fotoFile = file
+    }
+
+    // ================= UPDATE =================
     fun updateBunga(
         onSuccess: () -> Unit,
         onError: (String) -> Unit
     ) {
-        // Validasi: Stok tidak perlu divalidasi lagi di sini
         if (nama.isBlank() || kategori.isBlank() || harga.isBlank()) {
-            onError("Nama, Kategori, dan Harga wajib diisi!")
+            onError("Nama, kategori, dan harga wajib diisi")
             return
         }
 
@@ -85,12 +107,6 @@ class EditBungaViewModel(
                     )
                 }
 
-                /**
-                 * PERBAIKAN:
-                 * Stok dikirim sebagai String kosong atau nilai tertentu.
-                 * Di PHP (bunga_update.php), kolom 'stok' harus dihilangkan dari query UPDATE
-                 * agar angka stok yang sudah ada di database tidak berubah/tertimpa.
-                 */
                 val response = repositoryBunga.updateBunga(
                     id = idBunga,
                     nama = nama,
@@ -100,22 +116,33 @@ class EditBungaViewModel(
                 )
 
                 if (response.isSuccessful) {
+                    fotoFile = null // ✅ reset
                     onSuccess()
                 } else {
-                    val errorRaw = response.errorBody()?.string()
-                    val pesan = try {
-                        JSONObject(errorRaw.orEmpty()).getString("error")
-                    } catch (e: Exception) {
-                        "Gagal memperbarui data"
+                    val pesan = when (response.code()) {
+                        409 -> {
+                            isLocked = true
+                            "Data bunga tidak dapat diperbarui karena sudah memiliki riwayat stok"
+                        }
+                        else -> {
+                            val raw = response.errorBody()?.string()
+                            try {
+                                JSONObject(raw.orEmpty()).getString("error")
+                            } catch (e: Exception) {
+                                "Gagal memperbarui data bunga"
+                            }
+                        }
                     }
+
                     errorMessage = pesan
                     onError(pesan)
                 }
             } catch (e: Exception) {
-                val msg = e.message ?: "Gagal memperbarui data bunga"
+                val msg = "Koneksi ke server bermasalah"
                 errorMessage = msg
                 onError(msg)
             }
         }
     }
 }
+

@@ -155,7 +155,7 @@ fun FloristTopAppBar(
                 onClick = onLogoutClick,
                 label = {
                     Text(
-                        "Keluar",
+                        "Logout",
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Medium
                     )
@@ -254,6 +254,8 @@ fun CardBunga(
         elevation = CardDefaults.cardElevation(4.dp)
     ) {
         Column {
+
+            // FOTO
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -267,12 +269,33 @@ fun CardBunga(
                 )
             }
 
-            Column(Modifier.padding(12.dp)) {
-                Text(bunga.nama_bunga ?: "", fontWeight = FontWeight.SemiBold)
-                Text("Harga : Rp ${bunga.harga}")
-                Text("Stok : ${bunga.stok}")
+            // INFO
+            Column(
+                modifier = Modifier.padding(12.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
 
-                Spacer(Modifier.height(10.dp))
+                // NAMA
+                Text(
+                    text = bunga.nama_bunga ?: "",
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 15.sp
+                )
+
+                // KATEGORI (PENTING)
+                Text(
+                    text = bunga.kategori ?: "",
+                    fontSize = 13.sp,
+                    color = MaterialTheme.colorScheme.primary
+                )
+
+                // HARGA
+                Text(
+                    text = "Rp ${bunga.harga}",
+                    fontSize = 13.sp
+                )
+
+                Spacer(Modifier.height(8.dp))
 
                 Button(
                     onClick = onDetailClick,

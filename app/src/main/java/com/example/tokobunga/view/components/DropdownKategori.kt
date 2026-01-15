@@ -22,7 +22,10 @@ fun DropdownKategori(
 ) {
     val listKategori = listOf(
         "Fresh Flower",
-        "Artificial Flower"
+        "Dried Flower",
+        "Artificial Flower",
+        "Preserved Flower",
+        "Premium Flower"
     )
 
 
